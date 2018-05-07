@@ -1,14 +1,10 @@
 '''
 to run:
-gcc -g try.c
-python gdb_new.py
-Enter file :a.out
+python interface.py
+Enter file :<name of your c program to be visualised>
 '''
 
 '''
-parameter passing?
-info frame
-
 return value?
 finish
 
@@ -23,13 +19,15 @@ from os import O_NONBLOCK, read
 import string
 import re
 
-y = 0
+stop = 0
 ret = 0
 func = re.compile("\w+ \(((\w+\=\w+), )*(\w+\=\w+)?\)")
 
-file = raw_input('enter program name (with a ./ if in local directory): ')
+my_file = raw_input('enter program name (with a ./ if in local directory): ')
 
-p1 = Popen(['gdb', file], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+subprocess.call(["gcc","-g",my_file])
+
+p1 = Popen(['gdb', 'a.out'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 flags = fcntl(p1.stdout, F_GETFL) # get current p.stdout flags
 fcntl(p1.stdout, F_SETFL, flags | O_NONBLOCK)
@@ -47,6 +45,7 @@ def output(p1,flag):
 	#print "-------------------------------------------------"
 	#print my_out
 	#print "-------------------------------------------------"
+	global ret
 	m = func.match(my_out)
 	if m is not None:
 		my_out = m.group()
@@ -59,19 +58,16 @@ def output(p1,flag):
 		print "\n"
 		return
 	if 'result = 0' in my_out:
-		global y
-		y = 1
+		global stop
+		stop = 1
 		return
 	if 'Value returned is' in my_out:
-		global ret
 		my_out = my_out.split(' ')
 		print 'Return Value:',my_out[len(my_out)-2].split('\n')[0],'\n'
 		ret = 0
 		return
 	if 'return' in my_out:
-		global ret
 		ret = 1
-		#print my_out
 		return 
 	if flag == 2:
 		my_out = string.replace(my_out,'(gdb)','')
@@ -104,7 +100,7 @@ while True:
 	output(p1,1)
 	p1.stdin.write('info args\n')
 	output(p1,4)
-	if y == 1:
+	if stop == 1:
 		break
 	if ret == 1:
 		p1.stdin.write('finish\n')
