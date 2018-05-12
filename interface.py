@@ -5,15 +5,10 @@ Enter file :<name of your c program to be visualised>
 '''
 
 '''
+To be done:
 global variables
-'''
-
-'''
-scanf
-'''
-
-'''
 heap
+visualisation
 '''
 
 from subprocess import *
@@ -27,6 +22,7 @@ import sys
 
 stop = 0
 ret = 0
+scanf = 0
 func = re.compile("\w+ \(((\w+\=\w+), )*(\w+\=\w+)?\)")
 
 my_file = raw_input('enter program name (with a ./ if in local directory): ')
@@ -52,8 +48,11 @@ def output(p1,flag):
 	#print "-------------------------------------------------"
 	#print my_out
 	#print "-------------------------------------------------"
+	if "scanf" in my_out:
+		global scanf
+		scanf = 1
 	if "printf" in my_out:
-		print "Output:"
+		print "Output from printf is:"
 		op_string = my_out[11:len(my_out)-9].split(",")
 		i = 0
 		i_args = 1
@@ -72,6 +71,8 @@ def output(p1,flag):
 		print '\n'		
 	global ret
 	m = func.match(my_out)
+	#print m
+	#print my_out
 	if m is not None:
 		my_out = m.group()
 		func_name,my_out = my_out.split('(')
@@ -124,10 +125,13 @@ output(p1,0)
 
 while True:
 	inp = raw_input()
-	#print inp
 	if(inp=='exit' or inp=='quit'):
 		break
 	p1.stdin.write('step\n')
+	if scanf == 1:
+		print "Enter input for scanf:\n"
+		p1.stdin.write(str(input())+'\n')
+		scanf = 0
 	output(p1,0)
 	p1.stdin.write('info line\n')
 	output(p1,2)
@@ -140,7 +144,7 @@ while True:
 	if ret == 1:
 		p1.stdin.write('finish\n')
 		output(p1,3)
-	
+	print 'Hit Enter to Continue, exit/quit to stop\n'
 	
 	
 

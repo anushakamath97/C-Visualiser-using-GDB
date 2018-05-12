@@ -19,8 +19,8 @@ int main(void)
 	int i = 20 , j = 10, k = 2;
 	i = q+1;
 	q = 11;
-	int *heap = (int *)malloc(sizeof(int)*2);
-	//scanf("%d",&i);
+	//int *heap = (int *)malloc(sizeof(int)*2);
+	scanf("%d",&i);
 	printf("i is :%d",i);
 	int a[j][k];
 	int sum = i + j;
