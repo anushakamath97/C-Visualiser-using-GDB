@@ -6,9 +6,8 @@ Enter file :<name of your c program to be visualised>
 
 '''
 To be done:
-global variables
 heap
-visualisation
+proper visualisation
 '''
 
 from subprocess import *
@@ -20,14 +19,36 @@ import string
 import re
 import sys
 
+sep = ['+','-','=','*','/',';','[','.']
+global_name_list = []
 stop = 0
 ret = 0
 scanf = 0
 func = re.compile("\w+ \(((\w+\=\w+), )*(\w+\=\w+)?\)")
 
-my_file = raw_input('enter program name (with a ./ if in local directory): ')
+my_file = raw_input('Enter C program name (with a ./ if in local directory): ')
 
 subprocess.call(["gcc","-g","-static",my_file])
+
+p_glob = Popen(['gdb', 'a.out'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+p_glob.stdin.write('info variables\n')
+op = p_glob.communicate()
+glob_list = op[0].split('\n')
+
+i = glob_list.index('File '+my_file+':') + 1
+while glob_list[i]!='':
+	x = glob_list[i].split(' ')[1].replace(";",'').replace("\n",'')
+	if x[0] == '*':
+		x = x[1:]
+	name = ''
+	for j in range(0,len(x)):
+		if x[j] in sep:
+			break
+		name = name + x[j]
+	global_name_list.append(name)
+	i += 1
+#print global_name_list
+
 
 p1 = Popen(['gdb', 'a.out'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
@@ -95,6 +116,11 @@ def output(p1,flag):
 	if 'return' in my_out:
 		ret = 1
 		return 
+	if flag == 6:
+		my_out = my_out.split('=')[1]
+		my_out = string.replace(my_out,'(gdb)','')
+		my_out = string.replace(my_out,'\n','')
+		sys.stdout.write(my_out+'\n')
 	if flag == 5:
 		#print my_out
 		my_out = my_out.split('=')[1]
@@ -108,7 +134,7 @@ def output(p1,flag):
 		print ' '.join(my_out)
 	elif flag == 1:
 		my_out = string.replace(my_out,'(gdb)','')
-		print '(Stack Frame)'
+		print '\n(Stack Frame)'
 		print my_out
 	elif flag == 4:
 		my_out = string.replace(my_out,'(gdb)','').strip()
@@ -125,7 +151,7 @@ output(p1,0)
 
 while True:
 	inp = raw_input()
-	if(inp=='exit' or inp=='quit'):
+	if(inp=='exit' or inp=='quit' or inp=='q'):
 		break
 	p1.stdin.write('step\n')
 	if scanf == 1:
@@ -135,6 +161,11 @@ while True:
 	output(p1,0)
 	p1.stdin.write('info line\n')
 	output(p1,2)
+	print '(Global Variables)'
+	for i in global_name_list:
+		sys.stdout.write(i+" = ")
+		p1.stdin.write('print '+i+'\n')
+		output(p1,6)
 	p1.stdin.write('info locals\n')
 	output(p1,1)
 	p1.stdin.write('info args\n')
