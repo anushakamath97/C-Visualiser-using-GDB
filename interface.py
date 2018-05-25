@@ -18,6 +18,7 @@ from os import O_NONBLOCK, read
 import string
 import re
 import sys
+from tabulate import tabulate
 
 sep = ['+','-','=','*','/',';','[','.']
 global_name_list = []
@@ -57,6 +58,7 @@ fcntl(p1.stdout, F_SETFL, flags | O_NONBLOCK)
 
 print 'Hit Enter to Begin'
 def output(p1,flag):
+	global stop
 	my_out = ''
 	sleep(0.1)
 	while True:
@@ -100,12 +102,15 @@ def output(p1,flag):
 		my_out = my_out.split(')')[0]
 		my_out = my_out.split(',')
 		print "Function ",func_name," called with arguments:"
+		heading = ["ARGUMENT","VALUE"]
+		var_tab = []
 		for arg in my_out:
-			print arg.strip()
+			var_tab.append(arg.strip().split("="))
+		print(tabulate(var_tab,headers=heading,tablefmt="psql"))
 		print "\n"
 		return
 	if 'result = 0' in my_out:
-		global stop
+		
 		stop = 1
 		return
 	if 'Value returned is' in my_out:
@@ -120,7 +125,8 @@ def output(p1,flag):
 		my_out = my_out.split('=')[1]
 		my_out = string.replace(my_out,'(gdb)','')
 		my_out = string.replace(my_out,'\n','')
-		sys.stdout.write(my_out+'\n')
+		return my_out
+		#sys.stdout.write(my_out+'\n')
 	if flag == 5:
 		#print my_out
 		my_out = my_out.split('=')[1]
@@ -133,14 +139,37 @@ def output(p1,flag):
 		my_out = my_out[:2]
 		print ' '.join(my_out)
 	elif flag == 1:
-		my_out = string.replace(my_out,'(gdb)','')
-		print '\n(Stack Frame)'
-		print my_out
+		if my_out != 'No symbol table info available.\n(gdb) ':
+			my_out = string.replace(my_out,'(gdb)','')
+			print '\n(Stack Frame)'
+			my_out = my_out.split('\n')
+			my_out = [ x.split('=') for x in my_out ]
+			for x in range(len(my_out)):
+				my_out[x] = [ y.strip() for y in my_out[x] ]
+			prev = 0
+			for x in range(len(my_out)):
+				if len(my_out[x])!= 2:
+					if len(my_out[x]) == 1:
+						my_out[prev][1] += my_out[x][0]
+				else:
+					prev = x
+			my_out = filter(lambda a: len(a) ==2, my_out) 
+			heading = ["VARIABLE","VALUE"]
+			print(tabulate(my_out,headers=heading,tablefmt="psql"))
+			#print my_out
+		else:
+			stop =1
 	elif flag == 4:
 		my_out = string.replace(my_out,'(gdb)','').strip()
 		if my_out != "No arguments.":
 			print "(Arguments)"
-			print my_out
+			my_out = my_out.split("\n")
+			my_out = [ x.split('=') for x in my_out ]
+			for x in range(len(my_out)):
+				my_out[x] = [ y.strip() for y in my_out[x] ]
+			my_out = filter(lambda a : len(a) == 2,my_out)
+			heading = ["ARGUMENT","VALUE"]
+			print(tabulate(my_out,headers=heading,tablefmt="psql"))
 			print "\n"
 			
 
@@ -162,10 +191,12 @@ while True:
 	p1.stdin.write('info line\n')
 	output(p1,2)
 	print '(Global Variables)'
+	var_tab=[]
+	heading = ["VARIABLE","VALUE"]
 	for i in global_name_list:
-		sys.stdout.write(i+" = ")
 		p1.stdin.write('print '+i+'\n')
-		output(p1,6)
+		var_tab.append([i,output(p1,6)])
+	print(tabulate(var_tab,headers=heading,tablefmt="psql"))		
 	p1.stdin.write('info locals\n')
 	output(p1,1)
 	p1.stdin.write('info args\n')
